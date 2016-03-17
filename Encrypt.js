@@ -62,8 +62,7 @@ function processRecord(record, callback) {
                     
         CopySource: encodeURIComponent(bucket + '/' + key),
         MetadataDirective: 'COPY',
-        ServerSideEncryption: 'AES256',
-        StorageClass: storageClass
+        ServerSideEncryption: 'AES256'
       }, function (err, data) {
         if (err) {
           console.log('Error updating object:');
