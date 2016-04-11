@@ -77,7 +77,7 @@ function processRecord(record, callback) {
           console.log(err, err.stack); // an error occurred
           callback("Error updating object: " + err);
         } else {
-          console.log(bucket + '/' + key + ' updated.');
+          console.log(bucket + '/' + lkey + ' updated.');
 
           // check if we fixed case and delete old object
           console.log(casefix);
@@ -117,7 +117,7 @@ function processRecord(record, callback) {
           console.log(err, err.stack); // an error occurred
           callback("Error updating object: " + err);
         } else {
-          console.log(bucket + '/' + key + ' updated.');
+          console.log(bucket + '/' + lkey + ' updated.');
           
           //delete the old object
           s3.deleteObject({
@@ -133,8 +133,6 @@ function processRecord(record, callback) {
               callback();
             }
           });
-
-          callback();
         }
       });
 
