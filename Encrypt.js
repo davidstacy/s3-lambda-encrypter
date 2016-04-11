@@ -39,6 +39,14 @@ function processRecord(record, callback) {
   // The bucket and key are part of the event data
   var bucket = record.s3.bucket.name;
   var key = decodeURIComponent(record.s3.object.key.replace(/\+/g, " "));
+  var lkey = key.toLowerCase();
+  var casefix = false;
+  if ( key != lkey ) {
+    casefix = true;
+    console.log('casefix is true, oldkey is ' + key + ' and lowercase key is ' + lkey);
+  } else {
+    console.log('casefix is false')
+  }
   
   console.log('Processing ' + bucket + '/' + key);
   
@@ -52,10 +60,10 @@ function processRecord(record, callback) {
       console.log('Error getting object head:');
       console.log(err, err.stack); // an error occurred
       callback("Error getting object head: " + bucket + '/' + key);
+
     } else if (data.ServerSideEncryption != 'AES256') {
       // Copy the object adding the encryption
       console.log('Updating object');
-      lkey = key.toLowerCase();
       s3.copyObject({
         Bucket: bucket,
         Key: lkey,
@@ -70,9 +78,66 @@ function processRecord(record, callback) {
           callback("Error updating object: " + err);
         } else {
           console.log(bucket + '/' + key + ' updated.');
+
+          // check if we fixed case and delete old object
+          console.log(casefix);
+          if ( casefix == true ) {
+            console.log("delete file");
+            s3.deleteObject({
+              Bucket: bucket,
+              Key: key
+            }, function (err, data) {
+              if (err) {
+                console.log('Error deleting object:');
+                console.log(err, err.stack); // an error occurred
+                callback("Error deleting object: " + err);
+              } else {
+                console.log(bucket + '/' + key + ' deleted.');
+                callback();
+              }
+            });
+          }
+        }
+      });
+
+    } else if ( casefix == true ) {
+
+      // copy the object to fix the case and delete old object
+      console.log('fixing the name to lower case');
+      s3.copyObject({
+        Bucket: bucket,
+        Key: lkey,
+                    
+        CopySource: encodeURIComponent(bucket + '/' + key),
+        MetadataDirective: 'COPY',
+        ServerSideEncryption: 'AES256'
+      }, function (err, data) {
+        if (err) {
+          console.log('Error updating object:');
+          console.log(err, err.stack); // an error occurred
+          callback("Error updating object: " + err);
+        } else {
+          console.log(bucket + '/' + key + ' updated.');
+          
+          //delete the old object
+          s3.deleteObject({
+            Bucket: bucket,
+            Key: key
+          }, function (err, data) {
+            if (err) {
+              console.log('Error deleting object:');
+              console.log(err, err.stack); // an error occurred
+              callback("Error deleting object: " + err);
+            } else {
+              console.log(bucket + '/' + key + ' deleted.');
+              callback();
+            }
+          });
+
           callback();
         }
       });
+
     } else {
       console.log(bucket + '/' + key + " is already encrypted using 'AES256'.");
       callback();
